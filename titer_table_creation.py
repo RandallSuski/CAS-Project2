@@ -93,6 +93,68 @@ for i in range(len(list_of_mutated_strains)):
         titer = (2 ** (10 - distance)).round()
         titer_table.at[column_row_names[i], column_row_names[j]] = titer
 
-print(titer_table)
-
 titer_table.to_csv('titer_table_' + str(n) + '.csv')
+
+# Need to calculate the fitness of the variants as well and store them in a csv file
+
+# Will take the mean fitness of the sites mutated since we can't get a specific amino acid
+# from the escape calculator
+
+fitness_values = []
+probability_values = []
+expected_count = []
+site_names = []
+
+probability_no_mutation_values = []
+probability_mutation_values = []
+
+starting_genome = pd.read_csv('starting_aa_RBD.csv')
+
+# Calculate the probability of each site in RBD mutating
+for i in range(191):
+    site_of_interest = starting_genome.iloc[i, 1]
+    site_mutations = df2[ df2['aa_site'] == site_of_interest ]
+    num_mutations = site_mutations['expected_count'].sum()
+    num_no_mutations = starting_genome.iloc[i, 4]
+    probability_of_mutation = (num_mutations) / (num_no_mutations + num_mutations)
+    probability_mutation_values.append(probability_of_mutation.round(3))
+    probability_no_mutation_values.append(1 - probability_of_mutation.round(3))
+
+
+
+for item in list_of_mutated_strains:
+    site_names.append(str(item[0]) + ', ' + str(item[1]) + ', ' + str(item[2]))
+
+    # Calculate probability of this mutation occuring
+    probability_of_this_mutant = 1
+    for i in range(len(probability_mutation_values)):
+        if i == item[0] or i == item[1] or i == item[2]:
+            probability_of_this_mutant *= probability_mutation_values[i]
+        else:
+            probability_of_this_mutant *= probability_no_mutation_values[i]
+    probability_values.append('{:g}'.format(float('{:.3g}'.format(probability_of_this_mutant))))
+
+
+    # get the mean fitness of each mutated site
+    newdf = pd.read_csv('site331-524_unfiltered.csv')
+    item_fitness = 0
+    for i in range(3):
+        # Calculate Mean fitness of each site
+        siteidf = newdf[newdf['aa_site'] == item[i]]
+        fitness_sum = siteidf['fitness'].sum()
+        fitness_average = fitness_sum / siteidf.shape[0]
+        item_fitness = (item_fitness + fitness_average).round(3)
+    fitness_values.append(item_fitness)
+
+    expected_count.append('{:g}'.format(float('{:.3g}'.format(probability_of_this_mutant * 10**10))))
+
+data = {
+    'Mutation': ['M01', 'M02', 'M03', 'M04', 'M05', 'M06', 'M07', 'M08', 'M09', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20'],
+    'Mutated Sites': site_names,
+    'Mean Fitness': fitness_values,
+    'Probability of Mutation': probability_values,
+    'Excpected Count': expected_count
+}
+
+mutation_data = pd.DataFrame(data)
+mutation_data.to_csv('antigenic_mutation_data.csv', index=False)

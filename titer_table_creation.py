@@ -153,7 +153,7 @@ data = {
     'Mutated Sites': site_names,
     'Mean Fitness': fitness_values,
     'Probability of Mutation': probability_values,
-    'Excpected Count': expected_count
+    'Expected Count': expected_count
 }
 
 mutation_data = pd.DataFrame(data)
